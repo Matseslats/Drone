@@ -52,7 +52,7 @@ namespace UI_Visualizer
             elevationSurface.ElevationSources.Add(elevationSource);
 
             // Add an exaggeration factor to increase the 3D effect of the elevation.
-            elevationSurface.ElevationExaggeration = 2.5;
+            elevationSurface.ElevationExaggeration = 1;
 
             // Apply the surface to the scene.
             scene.BaseSurface = elevationSurface;
@@ -60,7 +60,7 @@ namespace UI_Visualizer
 
             // Create a point that defines the observer's (camera) initial location in the scene.
             // The point defines a longitude, latitude, and altitude of the initial camera location.
-            MapPoint cameraLocation = new MapPoint(-4.077, 52.3131, 5330.0, SpatialReferences.Wgs84);
+            MapPoint cameraLocation = new MapPoint(-4.075, 52.3141, 5330.0, SpatialReferences.Wgs84);
 
             // Create a Camera using the point, the direction the camera should face (heading), and its pitch and roll (rotation and tilt).
             Camera sceneCamera = new Camera(locationPoint: cameraLocation,
@@ -70,7 +70,7 @@ namespace UI_Visualizer
 
             // Create the initial point to center the camera on (the Santa Monica mountains in Southern California).
             // Longitude=118.805 degrees West, Latitude=34.027 degrees North
-            MapPoint sceneCenterPoint = new MapPoint(-4.077, 52.4131, SpatialReferences.Wgs84);
+            MapPoint sceneCenterPoint = new MapPoint(-4.075, 52.4141, SpatialReferences.Wgs84);
 
             // Set an initial viewpoint for the scene using the camera and observation point.
             Viewpoint initialViewpoint = new Viewpoint(sceneCenterPoint, sceneCamera);
