@@ -8,6 +8,9 @@ using Esri.ArcGISRuntime.Geometry;
 using Esri.ArcGISRuntime.Mapping;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Esri.ArcGISRuntime.Symbology;
+using Esri.ArcGISRuntime.UI.Controls;
+using Esri.ArcGISRuntime.UI;
 
 namespace UI_Visualizer
 {
@@ -17,6 +20,7 @@ namespace UI_Visualizer
         {
             SetupScene();
         }
+
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
