@@ -1,33 +1,203 @@
+#include <Adafruit_ICM20X.h>
+#include <Adafruit_ICM20948.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
 #define LORA_CS A2
 #define LORA_RST A3
 #define BAT_LEVEL A4
 
-#define ESC1 D0
-#define ESC2 D1
-#define ESC3 D2
-#define ESC4 D3
+#define ESC1 0
+#define ESC2 1
+#define ESC3 2
+#define ESC4 3
 
-#define SERVO1 D4
-#define SERVO2 D5
-#define SERVO3 D6
+#define SERVO1 4
+#define SERVO2 5
+#define SERVO3 6
 
-#define SPI_CS D7
-#define SPI_MOSI D8
-#define SPI_CK D9
-#define SPI_MISO D10
+#define SPI_CS 7
+#define SPI_MOSI 8
+#define SPI_CK 9
+#define SPI_MISO 10
 
-#define I2C_SDA D11
-#define I2C_SCL D12
+#define I2C_SDA 11
+#define I2C_SCL 12
 
-#define UART_RX D13
-#define UART_TX D14
+#define UART_RX 13
+#define UART_TX 14
 
-void setup() {
-  // put your setup code here, to run once:
+#define ICM_CS SPI_CS
+// For software-SPI mode we need SCK/MOSI/MISO pins
+#define ICM_SCK SPI_CK
+#define ICM_MISO SPI_MISO
+#define ICM_MOSI SPI_MOSI
 
+uint16_t measurement_delay_us = 65535; // IMU delay between measurements for testing
+Adafruit_ICM20948 icm;
+
+#include <Servo.h> 
+
+  Servo esc1;
+  Servo esc2;
+  Servo esc3;
+  Servo esc4;
+
+void setup(void) {
+  Serial.begin(115200);
+  while (!Serial)
+    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+
+  Serial.println("Adafruit ICM20948 test!");
+
+  // Try to initialize!
+  if (!icm.begin_I2C()) {
+
+    Serial.println("Failed to find ICM20948 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("ICM20948 Found!");
+  // icm.setAccelRange(ICM20948_ACCEL_RANGE_16_G);
+  Serial.print("Accelerometer range set to: ");
+  switch (icm.getAccelRange()) {
+  case ICM20948_ACCEL_RANGE_2_G:
+    Serial.println("+-2G");
+    break;
+  case ICM20948_ACCEL_RANGE_4_G:
+    Serial.println("+-4G");
+    break;
+  case ICM20948_ACCEL_RANGE_8_G:
+    Serial.println("+-8G");
+    break;
+  case ICM20948_ACCEL_RANGE_16_G:
+    Serial.println("+-16G");
+    break;
+  }
+  Serial.println("OK");
+
+  // icm.setGyroRange(ICM20948_GYRO_RANGE_2000_DPS);
+  Serial.print("Gyro range set to: ");
+  switch (icm.getGyroRange()) {
+  case ICM20948_GYRO_RANGE_250_DPS:
+    Serial.println("250 degrees/s");
+    break;
+  case ICM20948_GYRO_RANGE_500_DPS:
+    Serial.println("500 degrees/s");
+    break;
+  case ICM20948_GYRO_RANGE_1000_DPS:
+    Serial.println("1000 degrees/s");
+    break;
+  case ICM20948_GYRO_RANGE_2000_DPS:
+    Serial.println("2000 degrees/s");
+    break;
+  }
+
+  //  icm.setAccelRateDivisor(4095);
+  uint16_t accel_divisor = icm.getAccelRateDivisor();
+  float accel_rate = 1125 / (1.0 + accel_divisor);
+
+  Serial.print("Accelerometer data rate divisor set to: ");
+  Serial.println(accel_divisor);
+  Serial.print("Accelerometer data rate (Hz) is approximately: ");
+  Serial.println(accel_rate);
+
+  //  icm.setGyroRateDivisor(255);
+  uint8_t gyro_divisor = icm.getGyroRateDivisor();
+  float gyro_rate = 1100 / (1.0 + gyro_divisor);
+
+  Serial.print("Gyro data rate divisor set to: ");
+  Serial.println(gyro_divisor);
+  Serial.print("Gyro data rate (Hz) is approximately: ");
+  Serial.println(gyro_rate);
+
+  // icm.setMagDataRate(AK09916_MAG_DATARATE_10_HZ);
+  Serial.print("Magnetometer data rate set to: ");
+  switch (icm.getMagDataRate()) {
+  case AK09916_MAG_DATARATE_SHUTDOWN:
+    Serial.println("Shutdown");
+    break;
+  case AK09916_MAG_DATARATE_SINGLE:
+    Serial.println("Single/One shot");
+    break;
+  case AK09916_MAG_DATARATE_10_HZ:
+    Serial.println("10 Hz");
+    break;
+  case AK09916_MAG_DATARATE_20_HZ:
+    Serial.println("20 Hz");
+    break;
+  case AK09916_MAG_DATARATE_50_HZ:
+    Serial.println("50 Hz");
+    break;
+  case AK09916_MAG_DATARATE_100_HZ:
+    Serial.println("100 Hz");
+    break;
+  }
+  Serial.println();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
+  //  /* Get a new normalized sensor event */
+  sensors_event_t accel;
+  sensors_event_t gyro;
+  sensors_event_t mag;
+  sensors_event_t temp;
+  icm.getEvent(&accel, &gyro, &temp, &mag);
+
+  Serial.print("\t\tTemperature ");
+  Serial.print(temp.temperature);
+  Serial.println(" deg C");
+
+  /* Display the results (acceleration is measured in m/s^2) */
+  Serial.print("\t\tAccel X: ");
+  Serial.print(accel.acceleration.x);
+  Serial.print(" \tY: ");
+  Serial.print(accel.acceleration.y);
+  Serial.print(" \tZ: ");
+  Serial.print(accel.acceleration.z);
+  Serial.println(" m/s^2 ");
+
+  Serial.print("\t\tMag X: ");
+  Serial.print(mag.magnetic.x);
+  Serial.print(" \tY: ");
+  Serial.print(mag.magnetic.y);
+  Serial.print(" \tZ: ");
+  Serial.print(mag.magnetic.z);
+  Serial.println(" uT");
+
+  /* Display the results (acceleration is measured in m/s^2) */
+  Serial.print("\t\tGyro X: ");
+  Serial.print(gyro.gyro.x);
+  Serial.print(" \tY: ");
+  Serial.print(gyro.gyro.y);
+  Serial.print(" \tZ: ");
+  Serial.print(gyro.gyro.z);
+  Serial.println(" radians/s ");
+  Serial.println();
+
+  delay(100);
+
+  //  Serial.print(temp.temperature);
+  //
+  //  Serial.print(",");
+  //
+  //  Serial.print(accel.acceleration.x);
+  //  Serial.print(","); Serial.print(accel.acceleration.y);
+  //  Serial.print(","); Serial.print(accel.acceleration.z);
+  //
+  //  Serial.print(",");
+  //  Serial.print(gyro.gyro.x);
+  //  Serial.print(","); Serial.print(gyro.gyro.y);
+  //  Serial.print(","); Serial.print(gyro.gyro.z);
+  //
+  //  Serial.print(",");
+  //  Serial.print(mag.magnetic.x);
+  //  Serial.print(","); Serial.print(mag.magnetic.y);
+  //  Serial.print(","); Serial.print(mag.magnetic.z);
+
+  //  Serial.println();
+  //
+  //  delayMicroseconds(measurement_delay_us);
 }
