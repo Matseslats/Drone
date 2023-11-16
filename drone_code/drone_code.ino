@@ -2,6 +2,7 @@
 #include <Adafruit_ICM20948.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include "kalman.h"
 
 #define LORA_CS A2
 #define LORA_RST A3
@@ -59,6 +60,11 @@ void setup(void) {
     }
   }
   Serial.println("ICM20948 Found!");
+  
+  setup_imu();
+}
+
+void setup_imu(){
   // icm.setAccelRange(ICM20948_ACCEL_RANGE_16_G);
   Serial.print("Accelerometer range set to: ");
   switch (icm.getAccelRange()) {
@@ -94,7 +100,7 @@ void setup(void) {
     break;
   }
 
-  //  icm.setAccelRateDivisor(4095);
+  icm.setAccelRateDivisor(4095);
   uint16_t accel_divisor = icm.getAccelRateDivisor();
   float accel_rate = 1125 / (1.0 + accel_divisor);
 
@@ -146,58 +152,25 @@ void loop() {
   sensors_event_t temp;
   icm.getEvent(&accel, &gyro, &temp, &mag);
 
-  Serial.print("\t\tTemperature ");
   Serial.print(temp.temperature);
-  Serial.println(" deg C");
 
-  /* Display the results (acceleration is measured in m/s^2) */
-  Serial.print("\t\tAccel X: ");
+  Serial.print(",");
+
   Serial.print(accel.acceleration.x);
-  Serial.print(" \tY: ");
-  Serial.print(accel.acceleration.y);
-  Serial.print(" \tZ: ");
-  Serial.print(accel.acceleration.z);
-  Serial.println(" m/s^2 ");
+  Serial.print(","); Serial.print(accel.acceleration.y);
+  Serial.print(","); Serial.print(accel.acceleration.z);
 
-  Serial.print("\t\tMag X: ");
-  Serial.print(mag.magnetic.x);
-  Serial.print(" \tY: ");
-  Serial.print(mag.magnetic.y);
-  Serial.print(" \tZ: ");
-  Serial.print(mag.magnetic.z);
-  Serial.println(" uT");
-
-  /* Display the results (acceleration is measured in m/s^2) */
-  Serial.print("\t\tGyro X: ");
+  Serial.print(",");
   Serial.print(gyro.gyro.x);
-  Serial.print(" \tY: ");
-  Serial.print(gyro.gyro.y);
-  Serial.print(" \tZ: ");
-  Serial.print(gyro.gyro.z);
-  Serial.println(" radians/s ");
+  Serial.print(","); Serial.print(gyro.gyro.y);
+  Serial.print(","); Serial.print(gyro.gyro.z);
+
+  Serial.print(",");
+  Serial.print(mag.magnetic.x);
+  Serial.print(","); Serial.print(mag.magnetic.y);
+  Serial.print(","); Serial.print(mag.magnetic.z);
+
   Serial.println();
 
-  delay(100);
-
-  //  Serial.print(temp.temperature);
-  //
-  //  Serial.print(",");
-  //
-  //  Serial.print(accel.acceleration.x);
-  //  Serial.print(","); Serial.print(accel.acceleration.y);
-  //  Serial.print(","); Serial.print(accel.acceleration.z);
-  //
-  //  Serial.print(",");
-  //  Serial.print(gyro.gyro.x);
-  //  Serial.print(","); Serial.print(gyro.gyro.y);
-  //  Serial.print(","); Serial.print(gyro.gyro.z);
-  //
-  //  Serial.print(",");
-  //  Serial.print(mag.magnetic.x);
-  //  Serial.print(","); Serial.print(mag.magnetic.y);
-  //  Serial.print(","); Serial.print(mag.magnetic.z);
-
-  //  Serial.println();
-  //
-  //  delayMicroseconds(measurement_delay_us);
+  delayMicroseconds(measurement_delay_us);
 }
