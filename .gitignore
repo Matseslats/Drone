@@ -1,0 +1,9 @@
+
+UI_Visualizer/.vs/*
+.vs/*
+*.user
+*.suo
+UI_Visualizer/UI_Visualizer/bin/*
+UI_Visualizer/UI_Visualizer/obj/*
+
+/.vscode
