@@ -1,4 +1,5 @@
 
+# Visual Studio files
 UI_Visualizer/.vs/*
 .vs/*
 *.user
@@ -6,4 +7,5 @@ UI_Visualizer/.vs/*
 UI_Visualizer/UI_Visualizer/bin/*
 UI_Visualizer/UI_Visualizer/obj/*
 
+# Visual Studio Code
 /.vscode
