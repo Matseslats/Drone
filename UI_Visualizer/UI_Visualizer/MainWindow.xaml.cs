@@ -178,22 +178,35 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ReadPortData(string selectedPort)
+    private async void ReadPortData(string selectedPort)
     {
         SerialPort myport = new SerialPort();
         myport.BaudRate = 9600;
+        myport.DataBits = 8;
+        myport.StopBits = StopBits.One;
+        myport.Parity = Parity.None;
         myport.PortName = selectedPort;
 
+        if (myport.IsOpen)
+        {
+            MessageBox.Show("Port is already open.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            myport.Close();
+        }
+        
+
+        myport.Open();
 
         try
         {
-            myport.Open();
-            string data = myport.ReadLine();
-            COMTextBlock.Text = data;
+            await Task.Run(() =>
+            {
+                int dataLength = myport.ReadBufferSize;
+                Dispatcher.Invoke(() => COMTextBlock.Text = $"Buffer size: {dataLength}");
+            });
         }
         catch (Exception ex)
         {
-            COMTextBlock.Text = $"Error: {ex.Message}";
+            MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
