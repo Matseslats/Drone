@@ -151,11 +151,15 @@ public partial class MainWindow : Window
 
             // Enable the ComboBox and allow user input
             comPortComboBox.IsEnabled = true;
+            int comPortCount = comPortComboBox.Items.Count;
+            String sOrNot = comPortCount > 1 ? "s" : "";
+            COMTextBlock.Text = $"{comPortComboBox.Items.Count} COM port{sOrNot} found.";
         }
         else
         {
             comPortComboBox.IsEnabled = false;
-            MessageBox.Show("No COM ports found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            // MessageBox.Show("No COM ports found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            COMTextBlock.Text = "No COM ports found.";
         }
     }
 
