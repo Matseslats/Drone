@@ -31,7 +31,8 @@ public partial class MainWindow : Window
 
     private Graphic droneGraphic;
     private float pitch, yaw, roll;
-    private float longitude, latitude;
+    private double longitude, latitude;
+    private float altitude;
 
     public MainWindow()
     {
@@ -46,12 +47,16 @@ public partial class MainWindow : Window
         // Populate the ComboBox with available COM ports
         PopulateCOMPorts();
         Rotate3DObject(0, -90, 0);
+        latitude = 52.4141;
+        longitude = -4.075;
+        altitude = 4;
+        moveGraphic(52.4141, -4.075, 4);
     }
 
     private void Button_Click(object sender, RoutedEventArgs e)
     {
         if (HelloButton.IsChecked == true){
-
+            moveGraphic(latitude+=0.000001, longitude-=0.000001, altitude+=100);
         }
     }
 
@@ -88,9 +93,21 @@ public partial class MainWindow : Window
         MainSceneView.CameraController = orbitGraphicController;
     }
 
-    private void moveGraphic(float latitude, float longitude)
+    private void moveGraphic(double latitude, double longitude, float altitude)
     {
-        droneGraphic.Geometry = new MapPoint(longitude, latitude);
+        // Assuming droneGraphic is your Graphic with a MapPoint
+        MapPoint objectLocation = (MapPoint)droneGraphic.Geometry;
+
+        // Set new latitude, longitude, and altitude values
+        double newLatitude = latitude;
+        double newLongitude = longitude;
+        double newAltitude = altitude;
+
+        // Create a new MapPoint with the updated coordinates
+        MapPoint updatedLocation = new MapPoint(newLongitude, newLatitude, newAltitude, SpatialReferences.Wgs84);
+
+        // Update the graphic's geometry
+        droneGraphic.Geometry = updatedLocation;
     }
 
     private void Rotate3DObject(double heading, double pitch, double roll)
