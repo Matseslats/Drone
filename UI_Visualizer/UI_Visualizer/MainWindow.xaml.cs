@@ -22,25 +22,28 @@ namespace UI_Visualizer;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 public partial class MainWindow : Window{
+
+    private Graphic droneGraphic;
+
     public MainWindow(){
         InitializeComponent();
 
         MapPoint mapCenterPoint = new MapPoint(-4.075, 52.4141, SpatialReferences.Wgs84);
         MainMapView.SetViewpoint(new Viewpoint(mapCenterPoint, 100000));
 
+        initGraphic();
         Add3DObjectToScene();
+        
     }
 
     private void Button_Click(object sender, RoutedEventArgs e){
         if (HelloButton.IsChecked == true){
-            MessageBox.Show("Hello.");
+            moveGraphic();
         }
     }
 
-    private void Add3DObjectToScene()
+    private void initGraphic()
     {
-        // Create a graphics overlay for 3D objects.
-        GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
 
         // Specify the path to your 3D model file (e.g., .gltf or .glb).
         var modelUri = new System.Uri("C:\\Users\\matsh\\Documents\\GitHub\\Drone\\UI_Visualizer\\UI_Visualizer\\Assets\\Drone_Coarse_GLTF.gltf");
@@ -52,7 +55,14 @@ public partial class MainWindow : Window{
         MapPoint objectLocation = new MapPoint(-4.075, 52.3141, 7360.0, SpatialReferences.Wgs84);
 
         // Create a graphic with the 3D symbol and location.
-        Graphic droneGraphic = new Graphic(objectLocation, modelSymbol);
+        droneGraphic = new Graphic(objectLocation, modelSymbol);
+
+    }
+
+    private void Add3DObjectToScene()
+    {
+        // Create a graphics overlay for 3D objects.
+        GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
 
         // Add the graphic to the graphics overlay.
         graphicsOverlay.Graphics.Add(droneGraphic);
@@ -65,4 +75,17 @@ public partial class MainWindow : Window{
         MainSceneView.CameraController = orbitGraphicController;
     }
 
+    private void moveGraphic()
+    {
+        // Get the current location (point) of the graphic.
+        var currentPosition = droneGraphic.Geometry as MapPoint;
+
+        // Define new x and y coordinates by applying an offset.
+        var newX = currentPosition.X + 0.001;
+        var newY = currentPosition.Y + 0.001;
+
+        // Update the point with the new coordinates (graphic will update to show new location).
+        var updatedPosition = new MapPoint(newX, newY);
+        droneGraphic.Geometry = updatedPosition;
+    }
 }
