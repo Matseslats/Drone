@@ -16,16 +16,25 @@ using Esri.ArcGISRuntime.Symbology;
 using Esri.ArcGISRuntime.UI;
 using Esri.ArcGISRuntime.UI.Controls;
 
+using System.IO.Ports;
+using System.Windows.Markup;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
+
 namespace UI_Visualizer;
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window{
+public partial class MainWindow : Window
+{
 
     private Graphic droneGraphic;
+    private float pitch, yaw, roll;
+    private float longitude, latitude;
 
-    public MainWindow(){
+    public MainWindow()
+    {
         InitializeComponent();
 
         MapPoint mapCenterPoint = new MapPoint(-4.075, 52.4141, SpatialReferences.Wgs84);
@@ -33,12 +42,16 @@ public partial class MainWindow : Window{
 
         initGraphic();
         Add3DObjectToScene();
-        
+
+        // Populate the ComboBox with available COM ports
+        PopulateCOMPorts();
+
     }
 
-    private void Button_Click(object sender, RoutedEventArgs e){
+    private void Button_Click(object sender, RoutedEventArgs e)
+    {
         if (HelloButton.IsChecked == true){
-            moveGraphic();
+             ReadPortData();
         }
     }
 
@@ -75,17 +88,163 @@ public partial class MainWindow : Window{
         MainSceneView.CameraController = orbitGraphicController;
     }
 
-    private void moveGraphic()
+    private void moveGraphic(float latitude, float longitude)
     {
-        // Get the current location (point) of the graphic.
-        var currentPosition = droneGraphic.Geometry as MapPoint;
+        droneGraphic.Geometry = new MapPoint(longitude, latitude);
+    }
 
-        // Define new x and y coordinates by applying an offset.
-        var newX = currentPosition.X + 0.001;
-        var newY = currentPosition.Y + 0.001;
+    private void Rotate3DObject(double heading, double pitch, double roll)
+    {
 
-        // Update the point with the new coordinates (graphic will update to show new location).
-        var updatedPosition = new MapPoint(newX, newY);
-        droneGraphic.Geometry = updatedPosition;
+        // Modify the rotation properties
+        droneGraphic.Attributes["Heading"] = heading;
+        droneGraphic.Attributes["Pitch"] = pitch;
+        droneGraphic.Attributes["Roll"] = roll;
+    }
+    
+    private void updateDataFromString(String line)
+    {
+        // Check and remove semicolon at the end
+        if (line.EndsWith(";"))
+        {
+            line = line.Substring(0, line.Length - 1);
+        } else
+        {
+            Console.WriteLine("Incomplete line.");
+            return;
+        }
+
+        // Split the line into an array of strings
+        string[] parts = line.Split(',');
+
+        // Convert the strings to floats
+        float float1, float2, float3;
+
+        if (parts.Length == 3 &&
+            float.TryParse(parts[0], out float1) &&
+            float.TryParse(parts[1], out float2) &&
+            float.TryParse(parts[2], out float3))
+        {
+            // Now, float1, float2, and float3 contain the converted values
+            Console.WriteLine($"Float1: {float1}, Float2: {float2}, Float3: {float3}");
+            pitch = float1;
+            roll = float2;
+            yaw = float3;
+            Rotate3DObject(yaw, pitch, roll);
+        }
+        else
+        {
+            Console.WriteLine("Invalid format or unable to convert to floats.");
+        }
+    }
+    
+
+    private void PopulateCOMPorts()
+    {
+        string[] availablePorts = SerialPort.GetPortNames();
+
+        if (availablePorts.Length > 0)
+        {
+            // Add the available ports to the ComboBox
+            comPortComboBox.ItemsSource = availablePorts;
+            comPortComboBox.SelectedIndex = 0; // Set the default selection if needed
+        }
+        else
+        {
+            comPortComboBox.IsEnabled = false;
+            MessageBox.Show("No COM ports found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+        string selectedPort = comPortComboBox.SelectedItem as string;
+
+        if (!string.IsNullOrEmpty(selectedPort))
+        {
+            // Call your method with the selected COM port
+            ReadPortData(selectedPort);
+        }
+        else
+        {
+            MessageBox.Show("Please select a COM port.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ReadPortData(string selectedPort)
+    {
+        SerialPort myport = new SerialPort();
+        myport.BaudRate = 9600;
+        myport.PortName = selectedPort;
+
+
+        try
+        {
+            myport.Open();
+            string data = myport.ReadLine();
+            COMTextBlock.Text = data;
+        }
+        catch (Exception ex)
+        {
+            COMTextBlock.Text = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            myport.Close();
+        }
+    }
+
+
+    // COM port re-populating
+    // Define constant values for Windows messages
+    private const int WM_DEVICECHANGE = 0x0219;
+    private const int DBT_DEVICEARRIVAL = 0x8000;
+    private const int DBT_DEVICEREMOVECOMPLETE = 0x8004;
+    private const int DBT_DEVTYP_PORT = 0x00000003;
+
+    // Define a structure for DEV_BROADCAST_PORT
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DEV_BROADCAST_PORT
+    {
+        public int dbcp_size;
+        public int dbcp_devicetype;
+        public int dbcp_reserved;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
+        public char[] dbcp_name;
+    }
+
+    // Override the WndProc method to handle Windows messages
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        // Get the window handle
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+
+        // Register for device change notifications
+        HwndSource source = HwndSource.FromHwnd(hwnd);
+        source.AddHook(new HwndSourceHook(WndProc));
+    }
+
+    // WndProc method to handle Windows messages
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_DEVICECHANGE)
+        {
+            int eventType = wParam.ToInt32();
+
+            if (eventType == DBT_DEVICEARRIVAL || eventType == DBT_DEVICEREMOVECOMPLETE)
+            {
+                DEV_BROADCAST_PORT devBroadcastPort = Marshal.PtrToStructure<DEV_BROADCAST_PORT>(lParam);
+
+                if (devBroadcastPort.dbcp_devicetype == DBT_DEVTYP_PORT)
+                {
+                    // USB serial port device has been plugged or unplugged, refresh the COM ports
+                    PopulateCOMPorts();
+                }
+            }
+        }
+
+        return IntPtr.Zero;
     }
 }
