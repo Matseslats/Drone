@@ -45,7 +45,7 @@ public partial class MainWindow : Window
 
         // Populate the ComboBox with available COM ports
         PopulateCOMPorts();
-
+        Rotate3DObject(0, -90, 0);
     }
 
     private void Button_Click(object sender, RoutedEventArgs e)
@@ -95,11 +95,19 @@ public partial class MainWindow : Window
 
     private void Rotate3DObject(double heading, double pitch, double roll)
     {
+        // Assuming droneGraphic is your Graphic with a ModelSceneSymbol
+        ModelSceneSymbol modelSymbol = (ModelSceneSymbol)droneGraphic.Symbol;
 
-        // Modify the rotation properties
-        droneGraphic.Attributes["Heading"] = heading;
-        droneGraphic.Attributes["Pitch"] = pitch;
-        droneGraphic.Attributes["Roll"] = roll;
+        // Set the new heading (rotation) for the 3D model in degrees
+        double newHeadingDegrees = 45.0;
+
+        // Set the new heading value to the ModelSceneSymbol
+        modelSymbol.Heading = heading;
+        modelSymbol.Pitch = pitch;
+        modelSymbol.Roll = roll;
+
+        // Update the graphic symbol
+        droneGraphic.Symbol = modelSymbol;
     }
     
     private void updateDataFromString(String line)
