@@ -51,7 +51,7 @@ public partial class MainWindow : Window
     private void Button_Click(object sender, RoutedEventArgs e)
     {
         if (HelloButton.IsChecked == true){
-             ReadPortData();
+
         }
     }
 
@@ -148,6 +148,9 @@ public partial class MainWindow : Window
             // Add the available ports to the ComboBox
             comPortComboBox.ItemsSource = availablePorts;
             comPortComboBox.SelectedIndex = 0; // Set the default selection if needed
+
+            // Enable the ComboBox and allow user input
+            comPortComboBox.IsEnabled = true;
         }
         else
         {
