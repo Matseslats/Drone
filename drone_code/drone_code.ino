@@ -2,7 +2,16 @@
 #include <Adafruit_ICM20948.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
-#include "kalman.h"
+
+#include "SensorFusion.h" //SF
+SF fusion;
+
+float gx, gy, gz, ax, ay, az, mx, my, mz;
+float pitch, roll, yaw;
+float deltat;
+
+#define ACCEL_RANGE_G 16
+#define GYRO_RANGE_DPS 2000
 
 #define LORA_CS A2
 #define LORA_RST A3
@@ -37,15 +46,15 @@
 uint16_t measurement_delay_us = 65535; // IMU delay between measurements for testing
 Adafruit_ICM20948 icm;
 
-#include <Servo.h> 
+// #include <Servo.h> 
 
-  Servo esc1;
-  Servo esc2;
-  Servo esc3;
-  Servo esc4;
+//   Servo esc1;
+//   Servo esc2;
+//   Servo esc3;
+//   Servo esc4;
 
 void setup(void) {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
@@ -60,7 +69,7 @@ void setup(void) {
     }
   }
   Serial.println("ICM20948 Found!");
-  
+
   setup_imu();
 }
 
@@ -100,7 +109,7 @@ void setup_imu(){
     break;
   }
 
-  icm.setAccelRateDivisor(4095);
+  icm.setAccelRateDivisor(10);
   uint16_t accel_divisor = icm.getAccelRateDivisor();
   float accel_rate = 1125 / (1.0 + accel_divisor);
 
@@ -145,32 +154,37 @@ void setup_imu(){
 
 void loop() {
 
-  //  /* Get a new normalized sensor event */
+  // //  /* Get a new normalized sensor event */
   sensors_event_t accel;
   sensors_event_t gyro;
   sensors_event_t mag;
   sensors_event_t temp;
+
   icm.getEvent(&accel, &gyro, &temp, &mag);
 
-  Serial.print(temp.temperature);
+  deltat = fusion.deltatUpdate(); //this have to be done before calling the fusion update
+  //choose only one of these two:
+  // fusion.MahonyUpdate(
+  //   gyro.gyro.x * DEG_TO_RAD, gyro.gyro.y * DEG_TO_RAD, gyro.gyro.z * DEG_TO_RAD, 
+  //   accel.acceleration.x, accel.acceleration.y, accel.acceleration.z, 
+  //   deltat);  //mahony is suggested if there isn't the mag and the mcu is slow
+  fusion.MadgwickUpdate(gyro.gyro.x, gyro.gyro.y, gyro.gyro.z, 
+    accel.acceleration.x, accel.acceleration.y, accel.acceleration.z, 
+    mag.magnetic.x, mag.magnetic.y, mag.magnetic.z, 
+    deltat);  //else use the magwick, it is slower but more accurate
 
+  pitch = fusion.getPitch();
+  roll = fusion.getRoll();    //you could also use getRollRadians() ecc
+  yaw = fusion.getYaw();
+
+  // Serial.print("Pitch:"); 
+  Serial.print(pitch);
   Serial.print(",");
-
-  Serial.print(accel.acceleration.x);
-  Serial.print(","); Serial.print(accel.acceleration.y);
-  Serial.print(","); Serial.print(accel.acceleration.z);
-
+  // Serial.print("Roll:"); 
+  Serial.print(roll);
   Serial.print(",");
-  Serial.print(gyro.gyro.x);
-  Serial.print(","); Serial.print(gyro.gyro.y);
-  Serial.print(","); Serial.print(gyro.gyro.z);
+  // Serial.print("Yaw:"); 
+  Serial.print(yaw);
+  Serial.println(";");
 
-  Serial.print(",");
-  Serial.print(mag.magnetic.x);
-  Serial.print(","); Serial.print(mag.magnetic.y);
-  Serial.print(","); Serial.print(mag.magnetic.z);
-
-  Serial.println();
-
-  delayMicroseconds(measurement_delay_us);
 }
