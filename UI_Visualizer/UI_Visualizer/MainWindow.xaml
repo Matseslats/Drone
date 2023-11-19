@@ -33,9 +33,28 @@
         <!-- Port selector -->
         <ComboBox x:Name="bleDeviceComboBox" Grid.Column="2" HorizontalAlignment="Left" Margin="10,388,0,0" VerticalAlignment="Top" Width="100"/>
         <Button Content="Connect" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="115,390,0,0" Click="ConnectButton_Click"/>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="2" Margin="0,0,0,51" >
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="2" Margin="0,116,0,51" >
             <TextBlock x:Name="COMTextBlock" Grid.Column="2" TextWrapping="Wrap" Text="No COM data yet." Width="190"/>
         </ScrollViewer>
+
+        <ProgressBar Grid.Column="2" HorizontalAlignment="Center" Height="15" Margin="0,101,0,0" VerticalAlignment="Top" Width="100"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="0,100,0,0" TextWrapping="Wrap" Text="100%" x:Name="batteryValue" VerticalAlignment="Top"/>
+
+        
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="-120,79,0,0" TextWrapping="Wrap" Text="NaN" x:Name="pitchValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="-120,63,0,0" TextWrapping="Wrap" Text="Pitch" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="0,79,0,0" TextWrapping="Wrap" Text="NaN" x:Name="yawValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="0,63,0,0" TextWrapping="Wrap" Text="Yaw" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="120,79,0,0" TextWrapping="Wrap" Text="NaN" x:Name="rollValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="120,63,0,0" TextWrapping="Wrap" Text="Roll" VerticalAlignment="Top"/>
+
+
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="-120,37,0,0" TextWrapping="Wrap" Text="NaN" x:Name="latitudeValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="-120,21,0,0" TextWrapping="Wrap" Text="Latitude" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="0,37,0,0" TextWrapping="Wrap" Text="NaN" x:Name="longitudeValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="0,21,0,0" TextWrapping="Wrap" Text="Longitude" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="120,37,0,0" TextWrapping="Wrap" Text="NaN" x:Name="altitudeValue" VerticalAlignment="Top"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Center" Margin="120,21,0,0" TextWrapping="Wrap" Text="Altitude" VerticalAlignment="Top"/>
 
     </Grid>
 

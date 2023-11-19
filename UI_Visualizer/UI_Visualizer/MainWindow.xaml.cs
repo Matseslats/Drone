@@ -152,22 +152,53 @@ public partial class MainWindow : Window
 
     private void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
     {
+
         var reader = DataReader.FromBuffer(args.CharacteristicValue);
         //MessageBox.Show($"New value from UUID: {sender.Uuid.ToString("D")}", "Subscription Data", MessageBoxButton.OK, MessageBoxImage.Information);
         switch (sender.Uuid.ToString("D"))
         {
             case "19b10001-e8f2-537e-4f6c-d104768a1214": // Pitch
-                pitch = reader.ReadSingle();
+                
+                pitch = reader.ReadInt32();
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Pitch: {pitch}\n");
+                Dispatcher.Invoke(() => pitchValue.Text = $"{pitch}");
                 Rotate3DObject(yaw, pitch, roll);
                 break;
-            case "19b10002-e8f2-537e-4f6c-d104768a1214": // Pitch
-                roll = reader.ReadSingle();
+
+            case "19b10002-e8f2-537e-4f6c-d104768a1214": // Roll
+                roll = reader.ReadInt32();
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Roll: {roll}\n");
+                Dispatcher.Invoke(() => rollValue.Text = $"{roll}");
                 break;
-            case "19b10003-e8f2-537e-4f6c-d104768a1214": // Pitch
-                yaw = reader.ReadSingle();
+
+            case "19b10003-e8f2-537e-4f6c-d104768a1214": // Yaw
+                yaw = reader.ReadInt32();
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Yaw: {yaw}\n");
+                Dispatcher.Invoke(() => yawValue.Text = $"{yaw}");
+                break;
+
+            case "19b10005-e8f2-537e-4f6c-d104768a1214": // Latitude
+                latitude = reader.ReadInt32();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Lat: {latitude}\n");
+                Dispatcher.Invoke(() => latitudeValue.Text = $"{latitude}");
+                break;
+
+            case "19b10006-e8f2-537e-4f6c-d104768a1214": // Longitude
+                longitude = reader.ReadInt32();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Long: {longitude}\n");
+                Dispatcher.Invoke(() => longitudeValue.Text = $"{longitude}");
+                break;
+
+            case "19b10007-e8f2-537e-4f6c-d104768a1214": // Altitude
+                altitude = reader.ReadInt32();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Alt: {altitude}\n");
+                Dispatcher.Invoke(() => altitudeValue.Text = $"{altitude}");
+                break;
+
+            case "19b10008-e8f2-537e-4f6c-d104768a1214": // Bat level
+                int batLevel = reader.ReadInt32();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"BatLevel: {batLevel}\n");
+                Dispatcher.Invoke(() => batteryValue.Text = $"{batLevel}%");
                 break;
             default:
                 break;
