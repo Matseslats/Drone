@@ -20,6 +20,13 @@ using System.IO.Ports;
 using System.Windows.Markup;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
+using Windows.Devices.Enumeration;
+using System.Collections.ObjectModel;
+
+using Windows.Devices.Bluetooth;
+using Windows.Devices.Enumeration;
+using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Storage.Streams;
 
 namespace UI_Visualizer;
 
@@ -28,7 +35,8 @@ namespace UI_Visualizer;
 /// </summary>
 public partial class MainWindow : Window
 {
-
+    private static string DATA_STREAM_UUID = "19B10000-E8F2-537E-4F6C-D104768A1214".ToLower();
+    static DeviceInformation device;
     private Graphic droneGraphic;
     private float pitch, yaw, roll;
     private double longitude, latitude;
@@ -44,13 +52,126 @@ public partial class MainWindow : Window
         initGraphic();
         Add3DObjectToScene();
 
-        // Populate the ComboBox with available COM ports
-        PopulateCOMPorts();
+        // Populate the ComboBox with available BLE ports
+        ConnectBLEDevice();
+
         Rotate3DObject(0, -90, 0);
         latitude = 52.4141;
         longitude = -4.075;
         altitude = 4;
         moveGraphic(52.4141, -4.075, 4);
+    }
+
+    private async void InitBLEDevice()
+    {
+
+        while (true)
+        {
+            if (device == null)
+            {
+                Thread.Sleep(200);
+            }
+            // Connect to device
+            BluetoothLEDevice bluetoothLeDevice = await BluetoothLEDevice.FromIdAsync(device.Id);
+
+            GattDeviceServicesResult result = await bluetoothLeDevice.GetGattServicesAsync();
+            if (result.Status == GattCommunicationStatus.Success)
+            {
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Found device\n");
+                ProcessBLEdevice(result);
+                break;
+            }
+        }
+    }
+
+    private async void ProcessBLEdevice(GattDeviceServicesResult result)
+    {
+        var services = result.Services;
+        foreach (var service in services)
+        {
+            if (service.Uuid.ToString("D") == DATA_STREAM_UUID)
+            {
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Found data stream\n");
+                // MessageBox.Show($"Data stream found: {service.Uuid}", "Service Found", MessageBoxButton.OK, MessageBoxImage.Information);
+                ProcessService(service);
+            }
+            // MessageBox.Show($"Service found: {service.Uuid.ToString("D")}", "Service Found", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private async void ProcessService(GattDeviceService service)
+    {
+        GattCharacteristicsResult result = await service.GetCharacteristicsAsync();
+
+        if (result.Status == GattCommunicationStatus.Success)
+        {
+            var characteristics = result.Characteristics;
+            foreach (var characteristic in characteristics)
+            {
+
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Found characteristic\n");
+                ProcessCharacteristic(characteristic);
+                // MessageBox.Show($"Data stream found: {characteristic.GetDescriptors}", "Service Found", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+    }
+
+    private async void ProcessCharacteristic(GattCharacteristic characteristic)
+    {
+        GattCharacteristicProperties properties = characteristic.CharacteristicProperties;
+
+        if (properties.HasFlag(GattCharacteristicProperties.Read))
+        {
+            // This characteristic supports reading from it.
+        }
+        if (properties.HasFlag(GattCharacteristicProperties.Write))
+        {
+            // This characteristic supports writing to it.
+        }
+        if (properties.HasFlag(GattCharacteristicProperties.Notify))
+        {
+            // This characteristic supports subscribing to notifications.
+            // MessageBox.Show($"Subscribig to notifications", "Subscription", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribing to characteristic\n");
+            SubscribeToCharacteristicNotif(characteristic);
+        }
+    }
+
+    private async void SubscribeToCharacteristicNotif(GattCharacteristic characteristic)
+    {
+        GattCommunicationStatus status = await characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+                        GattClientCharacteristicConfigurationDescriptorValue.Notify);
+        if (status == GattCommunicationStatus.Success)
+        {
+            characteristic.ValueChanged += Characteristic_ValueChanged;
+            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribed to characteristic\n");
+            // Server has been informed of clients interest.
+        }
+    }
+
+    private void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+    {
+        var reader = DataReader.FromBuffer(args.CharacteristicValue);
+        //MessageBox.Show($"New value from UUID: {sender.Uuid.ToString("D")}", "Subscription Data", MessageBoxButton.OK, MessageBoxImage.Information);
+        switch (sender.Uuid.ToString("D"))
+        {
+            case "19b10001-e8f2-537e-4f6c-d104768a1214": // Pitch
+                pitch = reader.ReadSingle();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Pitch: {pitch}\n");
+                Rotate3DObject(yaw, pitch, roll);
+                break;
+            case "19b10002-e8f2-537e-4f6c-d104768a1214": // Pitch
+                roll = reader.ReadSingle();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Roll: {roll}\n");
+                break;
+            case "19b10003-e8f2-537e-4f6c-d104768a1214": // Pitch
+                yaw = reader.ReadSingle();
+                Dispatcher.Invoke(() => COMTextBlock.Text += $"Yaw: {yaw}\n");
+                break;
+            default:
+                break;
+        }
     }
 
     private void Button_Click(object sender, RoutedEventArgs e)
@@ -110,14 +231,19 @@ public partial class MainWindow : Window
         droneGraphic.Geometry = updatedLocation;
     }
 
+    private void ConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+
+    }
+
     private void Rotate3DObject(double heading, double pitch, double roll)
     {
         // Assuming droneGraphic is your Graphic with a ModelSceneSymbol
         ModelSceneSymbol modelSymbol = (ModelSceneSymbol)droneGraphic.Symbol;
-
-        // Set the new heading (rotation) for the 3D model in degrees
-        double newHeadingDegrees = 45.0;
-
+        if (modelSymbol == null)
+        {
+            return;
+        }
         // Set the new heading value to the ModelSceneSymbol
         modelSymbol.Heading = heading;
         modelSymbol.Pitch = pitch;
@@ -126,188 +252,63 @@ public partial class MainWindow : Window
         // Update the graphic symbol
         droneGraphic.Symbol = modelSymbol;
     }
-    
-    private void updateDataFromString(String line)
+
+    private async void ConnectBLEDevice()
     {
-        // Check and remove semicolon at the end
-        if (line.EndsWith(";"))
-        {
-            line = line.Substring(0, line.Length - 1);
-        } else
-        {
-            Console.WriteLine("Incomplete line.");
-            return;
-        }
+        // Query for extra properties you want returned
+        string[] requestedProperties = { "System.Devices.Aep.DeviceAddress", "System.Devices.Aep.IsConnected" };
 
-        // Split the line into an array of strings
-        string[] parts = line.Split(',');
+        DeviceWatcher deviceWatcher =
+                    DeviceInformation.CreateWatcher(
+                            BluetoothLEDevice.GetDeviceSelectorFromPairingState(false),
+                            requestedProperties,
+                            DeviceInformationKind.AssociationEndpoint);
 
-        // Convert the strings to floats
-        float float1, float2, float3;
+        // Register event handlers before starting the watcher.
+        // Added, Updated and Removed are required to get all nearby devices
+        deviceWatcher.Added += DeviceWatcher_Added;
+        deviceWatcher.Updated += DeviceWatcher_Updated;
+        deviceWatcher.Removed += DeviceWatcher_Removed;
 
-        if (parts.Length == 3 &&
-            float.TryParse(parts[0], out float1) &&
-            float.TryParse(parts[1], out float2) &&
-            float.TryParse(parts[2], out float3))
-        {
-            // Now, float1, float2, and float3 contain the converted values
-            Console.WriteLine($"Float1: {float1}, Float2: {float2}, Float3: {float3}");
-            pitch = float1;
-            roll = float2;
-            yaw = float3;
-            Rotate3DObject(yaw, pitch, roll);
-        }
-        else
-        {
-            Console.WriteLine("Invalid format or unable to convert to floats.");
-        }
-    }
-    
+        // EnumerationCompleted and Stopped are optional to implement.
+        deviceWatcher.EnumerationCompleted += DeviceWatcher_EnumerationCompleted;
+        deviceWatcher.Stopped += DeviceWatcher_Stopped;
 
-    private void PopulateCOMPorts()
-    {
-        string[] availablePorts = SerialPort.GetPortNames();
+        // Start the watcher.
+        deviceWatcher.Start();
 
-        if (availablePorts.Length > 0)
-        {
-            // Add the available ports to the ComboBox
-            comPortComboBox.ItemsSource = availablePorts;
-            comPortComboBox.SelectedIndex = 0; // Set the default selection if needed
-
-            // Enable the ComboBox and allow user input
-            comPortComboBox.IsEnabled = true;
-            int comPortCount = comPortComboBox.Items.Count;
-            String sOrNot = comPortCount > 1 ? "s" : "";
-            COMTextBlock.Text = $"{comPortComboBox.Items.Count} COM port{sOrNot} found.";
-        }
-        else
-        {
-            comPortComboBox.IsEnabled = false;
-            // MessageBox.Show("No COM ports found.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            COMTextBlock.Text = "No COM ports found.";
-        }
+        InitBLEDevice();
+        deviceWatcher.Stop();
     }
 
-    private void ConnectButton_Click(object sender, RoutedEventArgs e)
+    private void DeviceWatcher_Stopped(DeviceWatcher sender, object args)
     {
-        string selectedPort = comPortComboBox.SelectedItem as string;
+        //throw new NotImplementedException();
+    }
 
-        if (!string.IsNullOrEmpty(selectedPort))
+    private void DeviceWatcher_EnumerationCompleted(DeviceWatcher sender, object args)
+    {
+        //throw new NotImplementedException();
+    }
+
+    private void DeviceWatcher_Removed(DeviceWatcher sender, DeviceInformationUpdate args)
+    {
+        //throw new NotImplementedException();
+    }
+
+    private void DeviceWatcher_Updated(DeviceWatcher sender, DeviceInformationUpdate args)
+    {
+        //throw new NotImplementedException();
+    }
+
+    private void DeviceWatcher_Added(DeviceWatcher sender, DeviceInformation args)
+    {
+        if (args.Name == "Portenta-Hopper-Drone")
         {
-            // Call your method with the selected COM port
-            ReadPortData(selectedPort);
+            device = args;
+            // MessageBox.Show($"Device Name: {args.Name}", "Device Found", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        else
-        {
-            MessageBox.Show("Please select a COM port.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private async void ReadPortData(string selectedPort)
-{
-    SerialPort myport = new SerialPort();
-    myport.BaudRate = 9600;
-    myport.DataBits = 8;
-    myport.StopBits = StopBits.One;
-    myport.Parity = Parity.None;
-    myport.Handshake = Handshake.None;
-    myport.PortName = selectedPort;
-
-    if (myport.IsOpen)
-    {
-        MessageBox.Show("Port is already open.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        myport.Close();
-        return;
-    }
-
-    myport.Open();
-
-    try
-    {
-        await Task.Run(() =>
-        {
-            while (true)
-            {
-                try
-                {
-                    // ReadLine blocks until a line is received
-                    String data = myport.ReadLine();
-
-                    // Use Dispatcher to update UI on the main thread
-                    Dispatcher.Invoke(() => COMTextBlock.Text = $"{data}");
-                }
-                catch (TimeoutException)
-                {
-                    // Handle timeout if needed
-                }
-                catch (Exception ex)
-                {
-                    // Handle other exceptions
-                    MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    break; // Exit the loop on exception
-                }
-            }
-        });
-    }
-    finally
-    {
-        // Ensure the port is closed, even if an exception occurs
-        myport.Close();
-    }
-}
-
-
-
-    // COM port re-populating
-    // Define constant values for Windows messages
-    private const int WM_DEVICECHANGE = 0x0219;
-    private const int DBT_DEVICEARRIVAL = 0x8000;
-    private const int DBT_DEVICEREMOVECOMPLETE = 0x8004;
-    private const int DBT_DEVTYP_PORT = 0x00000003;
-
-    // Define a structure for DEV_BROADCAST_PORT
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DEV_BROADCAST_PORT
-    {
-        public int dbcp_size;
-        public int dbcp_devicetype;
-        public int dbcp_reserved;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)]
-        public char[] dbcp_name;
-    }
-
-    // Override the WndProc method to handle Windows messages
-    protected override void OnSourceInitialized(EventArgs e)
-    {
-        base.OnSourceInitialized(e);
-
-        // Get the window handle
-        IntPtr hwnd = new WindowInteropHelper(this).Handle;
-
-        // Register for device change notifications
-        HwndSource source = HwndSource.FromHwnd(hwnd);
-        source.AddHook(new HwndSourceHook(WndProc));
-    }
-
-    // WndProc method to handle Windows messages
-    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        if (msg == WM_DEVICECHANGE)
-        {
-            int eventType = wParam.ToInt32();
-
-            if (eventType == DBT_DEVICEARRIVAL || eventType == DBT_DEVICEREMOVECOMPLETE)
-            {
-                DEV_BROADCAST_PORT devBroadcastPort = Marshal.PtrToStructure<DEV_BROADCAST_PORT>(lParam);
-
-                if (devBroadcastPort.dbcp_devicetype == DBT_DEVTYP_PORT)
-                {
-                    // USB serial port device has been plugged or unplugged, refresh the COM ports
-                    PopulateCOMPorts();
-                }
-            }
-        }
-
-        return IntPtr.Zero;
+        
+        //throw new NotImplementedException();
     }
 }

@@ -36,7 +36,7 @@
         <Button Content="Display" HorizontalAlignment="Center" Margin="0,271,0,0" VerticalAlignment="Top" Width="76" Click="Button_Click" Grid.Column="2"/>
 
         <!-- Port selector -->
-        <ComboBox x:Name="comPortComboBox" Grid.Column="2" HorizontalAlignment="Left" Margin="10,388,0,0" VerticalAlignment="Top" Width="100"/>
+        <ComboBox x:Name="bleDeviceComboBox" Grid.Column="2" HorizontalAlignment="Left" Margin="10,388,0,0" VerticalAlignment="Top" Width="100"/>
         <Button Content="Connect" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="115,390,0,0" Click="ConnectButton_Click"/>
         <TextBlock x:Name="COMTextBlock" HorizontalAlignment="Center" Margin="0,318,0,0" TextWrapping="Wrap" Text="No COM data yet." VerticalAlignment="Top" Grid.Column="2" Height="59" Width="180"/>
 
