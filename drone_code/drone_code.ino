@@ -285,12 +285,12 @@ void handleBluetooth(){
     }
   }
   if (central) {
-    digitalWrite(LEDB, LOW);
     // Serial.print("Connected to central: ");
     // Serial.println(central.address());
 
     // while the central is still connected
     if (central.connected()) {
+      digitalWrite(LEDB, LOW);
 
       // if data is available to read
       if (ledCharacteristic.written()) {
@@ -310,6 +310,8 @@ void handleBluetooth(){
       altitudeCharacteristic.writeValue(altitude);
 
       batteryLevelCharacteristic.writeValue(batLevel);
+    } else {
+      digitalWrite(LEDB, HIGH);
     }
   } else {
     digitalWrite(LEDB, HIGH);
