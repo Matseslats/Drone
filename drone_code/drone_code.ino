@@ -3,18 +3,46 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+#include <ArduinoBLE.h>
+
 #include "SensorFusion.h" //SF
 SF fusion;
+
+BLEService dataServiceBLE("19B10000-E8F2-537E-4F6C-D104768A1214"); // create a BLE service
+
+BLEFloatCharacteristic      pitchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for pitch
+BLEDescriptor              pitchLabelDescriptor("19B10A01-E8F2-537E-4F6C-D104768A1214", "Pitch");
+BLEFloatCharacteristic       rollCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for roll
+BLEDescriptor               rollLabelDescriptor("19B10A02-E8F2-537E-4F6C-D104768A1214", "Roll");
+BLEFloatCharacteristic        yawCharacteristic("19B10003-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for yaw
+BLEDescriptor                yawLabelDescriptor("19B10A03-E8F2-537E-4F6C-D104768A1214", "Yaw");
+
+BLEBoolCharacteristic         ledCharacteristic("19B10004-E8F2-537E-4F6C-D104768A1214", BLEWrite); // create a BLE characteristic for LED control
+BLEDescriptor                ledLabelDescriptor("19B10A04-E8F2-537E-4F6C-D104768A1214", "Green LED");
+
+BLEDoubleCharacteristic  latitudeCharacteristic("19B10005-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for latitude
+BLEDescriptor           latitudeLabelDescriptor("19B10A05-E8F2-537E-4F6C-D104768A1214", "Latitude");
+BLEDoubleCharacteristic longitudeCharacteristic("19B10006-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for longitude
+BLEDescriptor          longitudeLabelDescriptor("19B10A06-E8F2-537E-4F6C-D104768A1214", "Longitude");
+BLEFloatCharacteristic   altitudeCharacteristic("19B10007-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for altitude
+BLEDescriptor           altitudeLabelDescriptor("19B10A07-E8F2-537E-4F6C-D104768A1214", "Altitude");
+
+BLEFloatCharacteristic   batteryLevelCharacteristic("19B10008-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for batteryLevel
+BLEDescriptor           batteryLevelLabelDescriptor("19B10A08-E8F2-537E-4F6C-D104768A1214", "Battery Level");
+
+BLEDevice central;
 
 float gx, gy, gz, ax, ay, az, mx, my, mz;
 float pitch, roll, yaw;
 float deltat;
+float batLevel;
 
 #define ACCEL_RANGE_G 16
 #define GYRO_RANGE_DPS 2000
 
-#define LORA_CS A2
-#define LORA_RST A3
+#define LORA_INT 6
+#define LORA_CS 17
+#define LORA_RST 18
 #define BAT_LEVEL A4
 
 #define ESC1 0
@@ -46,6 +74,7 @@ float deltat;
 uint16_t measurement_delay_us = 65535; // IMU delay between measurements for testing
 Adafruit_ICM20948 icm;
 
+
 // #include <Servo.h> 
 
 //   Servo esc1;
@@ -53,24 +82,74 @@ Adafruit_ICM20948 icm;
 //   Servo esc3;
 //   Servo esc4;
 
+double latitude = 0, longitude = 0;
+float altitude = 0;
+
 void setup(void) {
   Serial.begin(9600);
   while (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
+  
 
-  Serial.println("Adafruit ICM20948 test!");
+  // set up the BLE
+  if (!BLE.begin()) {
+    Serial.println("Starting BLE failed!");
+    while (1);
+  }
+  // set the local name peripheral advertises
+  BLE.setLocalName("Portenta-Hopper-Drone");
+  BLE.setAdvertisedService(dataServiceBLE);
+  
+  // add the characteristics to the service
+  dataServiceBLE.addCharacteristic(pitchCharacteristic);
+  pitchCharacteristic.addDescriptor(pitchLabelDescriptor);
+  dataServiceBLE.addCharacteristic(rollCharacteristic);
+  rollCharacteristic.addDescriptor(rollLabelDescriptor);
+  dataServiceBLE.addCharacteristic(yawCharacteristic);
+  yawCharacteristic.addDescriptor(yawLabelDescriptor);
+
+
+  dataServiceBLE.addCharacteristic(ledCharacteristic);
+  ledCharacteristic.addDescriptor(ledLabelDescriptor);
+
+
+  dataServiceBLE.addCharacteristic(latitudeCharacteristic);
+  latitudeCharacteristic.addDescriptor(latitudeLabelDescriptor);
+  dataServiceBLE.addCharacteristic(longitudeCharacteristic);
+  longitudeCharacteristic.addDescriptor(longitudeLabelDescriptor);
+  dataServiceBLE.addCharacteristic(altitudeCharacteristic);
+  altitudeCharacteristic.addDescriptor(altitudeLabelDescriptor);
+
+  dataServiceBLE.addCharacteristic(batteryLevelCharacteristic);
+  batteryLevelCharacteristic.addDescriptor(batteryLevelLabelDescriptor);
+
+  // add service
+  BLE.addService(dataServiceBLE);
+
+  // set the initial values for the characteristics
+  pitchCharacteristic.setValue(0);
+  rollCharacteristic.setValue(0);
+  yawCharacteristic.setValue(0);
+  ledCharacteristic.setValue(false);
+  latitudeCharacteristic.setValue(0);
+  longitudeCharacteristic.setValue(0);
+
+  // start advertising
+  BLE.advertise();
+  Serial.println("Bluetooth device active, ready for connections...");
 
   // Try to initialize!
-  if (!icm.begin_I2C()) {
-
-    Serial.println("Failed to find ICM20948 chip");
-    while (1) {
-      delay(10);
-    }
+  while (!icm.begin_I2C()) {
+    Serial.println("Failed to find ICM20948 chip. Retyring");
+    delay(10);
   }
   Serial.println("ICM20948 Found!");
 
   setup_imu();
+}
+
+void onPulse(){
+  Serial.println("Pulse in interrupt!");
 }
 
 void setup_imu(){
@@ -153,6 +232,7 @@ void setup_imu(){
 }
 
 void loop() {
+  static int loop_no = 0;
 
   // //  /* Get a new normalized sensor event */
   sensors_event_t accel;
@@ -177,14 +257,61 @@ void loop() {
   roll = fusion.getRoll();    //you could also use getRollRadians() ecc
   yaw = fusion.getYaw();
 
-  // Serial.print("Pitch:"); 
-  Serial.print(pitch);
-  Serial.print(",");
-  // Serial.print("Roll:"); 
-  Serial.print(roll);
-  Serial.print(",");
-  // Serial.print("Yaw:"); 
-  Serial.print(yaw);
-  Serial.println(";");
+  // // Serial.print("Pitch:"); 
+  // Serial.print(pitch);
+  // Serial.print(",");
+  // // Serial.print("Roll:"); 
+  // Serial.print(roll);
+  // Serial.print(",");
+  // // Serial.print("Yaw:"); 
+  // Serial.print(yaw);
+  // Serial.println(";");
 
+  if (loop_no % 25 == 0){
+    handleBluetooth();
+  }
+  loop_no ++;
+}
+
+void handleBluetooth(){
+  // Check if there is a central device connected
+  if (!central) {
+    central = BLE.central(); // Try to connect to a central device
+    if (central) {
+      Serial.print("Connected to central: ");
+      Serial.println(central.address());
+      // Perform actions when a new connection is established
+      // For example, update Bluetooth values or send initial data
+    }
+  }
+  if (central) {
+    digitalWrite(LEDB, LOW);
+    // Serial.print("Connected to central: ");
+    // Serial.println(central.address());
+
+    // while the central is still connected
+    if (central.connected()) {
+
+      // if data is available to read
+      if (ledCharacteristic.written()) {
+        // read the LED state from the central
+        bool ledState = ledCharacteristic.value();
+        // perform action based on LED state (e.g., control an actual LED)
+        digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+      }
+
+      // Update values
+      pitchCharacteristic.writeValue(pitch);
+      rollCharacteristic.writeValue(roll);
+      yawCharacteristic.writeValue(yaw);
+
+      latitudeCharacteristic.writeValue(latitude);
+      longitudeCharacteristic.writeValue(longitude);
+      altitudeCharacteristic.writeValue(altitude);
+
+      batteryLevelCharacteristic.writeValue(batLevel);
+    }
+  } else {
+    digitalWrite(LEDB, HIGH);
+  }
 }
