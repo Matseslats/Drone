@@ -10,24 +10,24 @@ SF fusion;
 
 BLEService dataServiceBLE("19B10000-E8F2-537E-4F6C-D104768A1214"); // create a BLE service
 
-BLEFloatCharacteristic      pitchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for pitch
+BLEIntCharacteristic        pitchCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for pitch
 BLEDescriptor              pitchLabelDescriptor("19B10A01-E8F2-537E-4F6C-D104768A1214", "Pitch");
-BLEFloatCharacteristic       rollCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for roll
+BLEIntCharacteristic         rollCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for roll
 BLEDescriptor               rollLabelDescriptor("19B10A02-E8F2-537E-4F6C-D104768A1214", "Roll");
-BLEFloatCharacteristic        yawCharacteristic("19B10003-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for yaw
+BLEIntCharacteristic          yawCharacteristic("19B10003-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for yaw
 BLEDescriptor                yawLabelDescriptor("19B10A03-E8F2-537E-4F6C-D104768A1214", "Yaw");
 
 BLEBoolCharacteristic         ledCharacteristic("19B10004-E8F2-537E-4F6C-D104768A1214", BLEWrite); // create a BLE characteristic for LED control
 BLEDescriptor                ledLabelDescriptor("19B10A04-E8F2-537E-4F6C-D104768A1214", "Green LED");
 
-BLEDoubleCharacteristic  latitudeCharacteristic("19B10005-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for latitude
+BLEIntCharacteristic     latitudeCharacteristic("19B10005-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for latitude
 BLEDescriptor           latitudeLabelDescriptor("19B10A05-E8F2-537E-4F6C-D104768A1214", "Latitude");
-BLEDoubleCharacteristic longitudeCharacteristic("19B10006-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for longitude
+BLEIntCharacteristic    longitudeCharacteristic("19B10006-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for longitude
 BLEDescriptor          longitudeLabelDescriptor("19B10A06-E8F2-537E-4F6C-D104768A1214", "Longitude");
-BLEFloatCharacteristic   altitudeCharacteristic("19B10007-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for altitude
+BLEIntCharacteristic     altitudeCharacteristic("19B10007-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for altitude
 BLEDescriptor           altitudeLabelDescriptor("19B10A07-E8F2-537E-4F6C-D104768A1214", "Altitude");
 
-BLEFloatCharacteristic   batteryLevelCharacteristic("19B10008-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for batteryLevel
+BLEIntCharacteristic     batteryLevelCharacteristic("19B10008-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create a BLE characteristic for batteryLevel
 BLEDescriptor           batteryLevelLabelDescriptor("19B10A08-E8F2-537E-4F6C-D104768A1214", "Battery Level");
 
 BLEDevice central;
@@ -86,8 +86,11 @@ double latitude = 0, longitude = 0;
 float altitude = 0;
 
 void setup(void) {
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
   Serial.begin(9600);
-  while (!Serial)
+  if (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
   
 
@@ -146,6 +149,36 @@ void setup(void) {
   Serial.println("ICM20948 Found!");
 
   setup_imu();
+
+  pinMode(BAT_LEVEL, INPUT);
+  
+  digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, HIGH);
+  delay(200);
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
+  delay(200);
+  digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, HIGH);
+  delay(200);
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
+  delay(200);
+  digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, HIGH);
+  delay(200);
+  digitalWrite(LEDR, LOW);
+  digitalWrite(LEDG, LOW);
+  digitalWrite(LEDB, LOW);
+  delay(200);
+  digitalWrite(LEDR, HIGH);
+  digitalWrite(LEDG, HIGH);
+  digitalWrite(LEDB, HIGH);
 }
 
 void onPulse(){
@@ -257,14 +290,16 @@ void loop() {
   roll = fusion.getRoll();    //you could also use getRollRadians() ecc
   yaw = fusion.getYaw();
 
+  batLevel = analogRead(BAT_LEVEL);
+  Serial.println(batLevel);
   // // Serial.print("Pitch:"); 
-  // Serial.print(pitch);
+  // Serial.print((uint8_t)pitch);
   // Serial.print(",");
   // // Serial.print("Roll:"); 
-  // Serial.print(roll);
+  // Serial.print((uint8_t)roll);
   // Serial.print(",");
   // // Serial.print("Yaw:"); 
-  // Serial.print(yaw);
+  // Serial.print((uint8_t)yaw);
   // Serial.println(";");
 
   if (loop_no % 25 == 0){
