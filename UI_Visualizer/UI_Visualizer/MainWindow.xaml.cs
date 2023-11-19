@@ -158,45 +158,44 @@ public partial class MainWindow : Window
         switch (sender.Uuid.ToString("D"))
         {
             case "19b10001-e8f2-537e-4f6c-d104768a1214": // Pitch
-                
-                pitch = reader.ReadInt32();
+                pitch = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Pitch: {pitch}\n");
                 Dispatcher.Invoke(() => pitchValue.Text = $"{pitch}");
                 Rotate3DObject(yaw, pitch, roll);
                 break;
 
             case "19b10002-e8f2-537e-4f6c-d104768a1214": // Roll
-                roll = reader.ReadInt32();
+                roll = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Roll: {roll}\n");
                 Dispatcher.Invoke(() => rollValue.Text = $"{roll}");
                 break;
 
             case "19b10003-e8f2-537e-4f6c-d104768a1214": // Yaw
-                yaw = reader.ReadInt32();
+                yaw = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Yaw: {yaw}\n");
                 Dispatcher.Invoke(() => yawValue.Text = $"{yaw}");
                 break;
 
             case "19b10005-e8f2-537e-4f6c-d104768a1214": // Latitude
-                latitude = reader.ReadInt32();
+                latitude = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Lat: {latitude}\n");
                 Dispatcher.Invoke(() => latitudeValue.Text = $"{latitude}");
                 break;
 
             case "19b10006-e8f2-537e-4f6c-d104768a1214": // Longitude
-                longitude = reader.ReadInt32();
+                longitude = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Long: {longitude}\n");
                 Dispatcher.Invoke(() => longitudeValue.Text = $"{longitude}");
                 break;
 
             case "19b10007-e8f2-537e-4f6c-d104768a1214": // Altitude
-                altitude = reader.ReadInt32();
+                altitude = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"Alt: {altitude}\n");
                 Dispatcher.Invoke(() => altitudeValue.Text = $"{altitude}");
                 break;
 
             case "19b10008-e8f2-537e-4f6c-d104768a1214": // Bat level
-                int batLevel = reader.ReadInt32();
+                int batLevel = readIntReverse(reader);
                 Dispatcher.Invoke(() => COMTextBlock.Text += $"BatLevel: {batLevel}\n");
                 Dispatcher.Invoke(() => batteryValue.Text = $"{batLevel}%");
                 break;
@@ -204,6 +203,30 @@ public partial class MainWindow : Window
                 break;
         }
     }
+
+    private int readIntReverse(DataReader reader)
+    {
+        int result = 0;
+        int mult = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            byte nextByte = reader.ReadByte();
+
+            // Shift the existing bits in int_pitch to the left by 8 and OR with the new byte
+            result += nextByte*(int)Math.Pow(2, i*4 +1);
+        }
+
+        return result;
+    }
+
+    /*
+* 0        => 0
+* 1 or 2   => 16777216 = 0001000000000000000000000000
+* 1 or 2   => 33554432 = 0010000000000000000000000000
+* Read byte left to right. I suspect now it is reading right to left?
+* 
+* 
+*/
 
     private void Button_Click(object sender, RoutedEventArgs e)
     {
