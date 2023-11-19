@@ -204,40 +204,58 @@ public partial class MainWindow : Window
     }
 
     private async void ReadPortData(string selectedPort)
+{
+    SerialPort myport = new SerialPort();
+    myport.BaudRate = 9600;
+    myport.DataBits = 8;
+    myport.StopBits = StopBits.One;
+    myport.Parity = Parity.None;
+    myport.Handshake = Handshake.None;
+    myport.PortName = selectedPort;
+
+    if (myport.IsOpen)
     {
-        SerialPort myport = new SerialPort();
-        myport.BaudRate = 9600;
-        myport.DataBits = 8;
-        myport.StopBits = StopBits.One;
-        myport.Parity = Parity.None;
-        myport.PortName = selectedPort;
-
-        if (myport.IsOpen)
-        {
-            MessageBox.Show("Port is already open.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            myport.Close();
-        }
-        
-
-        myport.Open();
-
-        try
-        {
-            await Task.Run(() =>
-            {
-                int dataLength = myport.ReadBufferSize;
-                Dispatcher.Invoke(() => COMTextBlock.Text = $"Buffer size: {dataLength}");
-            });
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-        finally
-        {
-            myport.Close();
-        }
+        MessageBox.Show("Port is already open.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        myport.Close();
+        return;
     }
+
+    myport.Open();
+
+    try
+    {
+        await Task.Run(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    // ReadLine blocks until a line is received
+                    String data = myport.ReadLine();
+
+                    // Use Dispatcher to update UI on the main thread
+                    Dispatcher.Invoke(() => COMTextBlock.Text = $"{data}");
+                }
+                catch (TimeoutException)
+                {
+                    // Handle timeout if needed
+                }
+                catch (Exception ex)
+                {
+                    // Handle other exceptions
+                    MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break; // Exit the loop on exception
+                }
+            }
+        });
+    }
+    finally
+    {
+        // Ensure the port is closed, even if an exception occurs
+        myport.Close();
+    }
+}
+
 
 
     // COM port re-populating
