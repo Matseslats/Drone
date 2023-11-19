@@ -133,7 +133,7 @@ public partial class MainWindow : Window
             // This characteristic supports subscribing to notifications.
             // MessageBox.Show($"Subscribig to notifications", "Subscription", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribing to characteristic\n");
+            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribing to characteristic.\n");
             SubscribeToCharacteristicNotif(characteristic);
         }
     }
@@ -145,7 +145,7 @@ public partial class MainWindow : Window
         if (status == GattCommunicationStatus.Success)
         {
             characteristic.ValueChanged += Characteristic_ValueChanged;
-            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribed to characteristic\n");
+            Dispatcher.Invoke(() => COMTextBlock.Text += $"Subscribed to characteristic.\n");
             // Server has been informed of clients interest.
         }
     }
@@ -176,9 +176,11 @@ public partial class MainWindow : Window
 
     private void Button_Click(object sender, RoutedEventArgs e)
     {
+        /*
         if (HelloButton.IsChecked == true){
             moveGraphic(latitude+=0.000001, longitude-=0.000001, altitude+=100);
         }
+        */
     }
 
     private void initGraphic()
@@ -278,7 +280,6 @@ public partial class MainWindow : Window
         deviceWatcher.Start();
 
         InitBLEDevice();
-        deviceWatcher.Stop();
     }
 
     private void DeviceWatcher_Stopped(DeviceWatcher sender, object args)
@@ -311,4 +312,5 @@ public partial class MainWindow : Window
         
         //throw new NotImplementedException();
     }
+
 }

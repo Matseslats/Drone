@@ -30,15 +30,12 @@
                   Map="{Binding Map, Source={StaticResource MapViewModel}}" 
                   Grid.Column="1" />
 
-        <!-- Add other controls to the right half of the screen if needed -->
-        <TextBlock x:Name="COMInfoTextBlock" HorizontalAlignment="Left" Margin="50,56,0,0" TextWrapping="Wrap" Text="Select a message option and then choose the Display button." VerticalAlignment="Top" Grid.Column="2"/>
-        <RadioButton x:Name="HelloButton" Content="Hello" IsChecked="True" HorizontalAlignment="Center" Margin="0,154,0,0" VerticalAlignment="Top" Grid.Column="2"/>
-        <Button Content="Display" HorizontalAlignment="Center" Margin="0,271,0,0" VerticalAlignment="Top" Width="76" Click="Button_Click" Grid.Column="2"/>
-
         <!-- Port selector -->
         <ComboBox x:Name="bleDeviceComboBox" Grid.Column="2" HorizontalAlignment="Left" Margin="10,388,0,0" VerticalAlignment="Top" Width="100"/>
         <Button Content="Connect" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="115,390,0,0" Click="ConnectButton_Click"/>
-        <TextBlock x:Name="COMTextBlock" HorizontalAlignment="Center" Margin="0,318,0,0" TextWrapping="Wrap" Text="No COM data yet." VerticalAlignment="Top" Grid.Column="2" Height="59" Width="180"/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="2" Margin="0,0,0,51" >
+            <TextBlock x:Name="COMTextBlock" Grid.Column="2" TextWrapping="Wrap" Text="No COM data yet." Width="190"/>
+        </ScrollViewer>
 
     </Grid>
 
