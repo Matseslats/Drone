@@ -204,6 +204,12 @@ public partial class MainWindow : Window
         }
     }
 
+    /**
+     * Read the bytes from left to right. Does currently not handle negative numbers
+     * 0        =>        0 = 0000 0000 0000 0000 0000 0000 0000
+     * 1        => 16777216 = 0001 0000 0000 0000 0000 0000 0000
+     * 2        => 33554432 = 0010 0000 0000 0000 0000 0000 0000
+     */
     private int readIntReverse(DataReader reader)
     {
         int result = 0;
@@ -218,15 +224,6 @@ public partial class MainWindow : Window
 
         return result;
     }
-
-    /*
-* 0        => 0
-* 1 or 2   => 16777216 = 0001000000000000000000000000
-* 1 or 2   => 33554432 = 0010000000000000000000000000
-* Read byte left to right. I suspect now it is reading right to left?
-* 
-* 
-*/
 
     private void Button_Click(object sender, RoutedEventArgs e)
     {
